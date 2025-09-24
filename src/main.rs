@@ -1,7 +1,7 @@
 pub mod board;
 pub mod solver;
 
-use crate::board::Board;
+use crate::{board::Board, solver::Solver};
 use std::fs;
 
 pub fn load_board(puzzle_name: &str) -> Board {
@@ -24,6 +24,7 @@ pub fn load_board(puzzle_name: &str) -> Board {
 fn main() {
     let puzzle_name = "test_puzzles/puzzle00.txt";
     let board = load_board(puzzle_name);
+    let solver = Solver::new(board);
 }
 
 #[cfg(test)]
@@ -33,6 +34,6 @@ mod tests {
     #[test]
     fn load_board_test() {
         let board = load_board("test_puzzles/puzzle00.txt");
-        assert_eq!(board.n, 10);
+        assert_eq!(board.get_n(), 10);
     }
 }

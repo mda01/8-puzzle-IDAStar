@@ -3,19 +3,24 @@ use core::fmt;
 use grid::*;
 
 #[derive(PartialEq, Debug)]
-struct Pos {
+pub struct Pos {
     x: u16,
     y: u16,
 }
+
+impl Pos {
+    pub fn new(x: u16, y: u16) -> Pos {
+        return Pos { x, y };
+    }
+}
 pub struct Board {
     board: Grid<u16>,
-    target: Grid<u16>,
-    pub n: u16,
+    n: u16,
     pos_0: Pos,
 }
 
 #[derive(PartialEq, Debug)]
-enum Directions {
+pub enum Directions {
     UP,
     DOWN,
     LEFT,
@@ -34,6 +39,18 @@ impl fmt::Display for Directions {
 }
 
 impl Board {
+    pub fn get_n(&self) -> u16 {
+        return self.n;
+    }
+
+    pub fn get_board(&self) -> &Grid<u16> {
+        return &self.board;
+    }
+
+    pub fn new(board: Grid<u16>, n: u16, pos_0: Pos) -> Board {
+        return Board { board, n, pos_0 };
+    }
+
     pub fn load_from_str(n: u16, puzzle_str: &str) -> Board {
         let mut puzzle_vec = vec![];
         let mut rows = puzzle_str.splitn(n.into(), "\n");
@@ -59,18 +76,14 @@ impl Board {
             panic!("No 0 found!")
         }
         let board = Grid::from_vec(puzzle_vec, n.into());
-        let mut target_vec = Vec::from_iter(1..n * n);
-        target_vec.push(0);
-        let target = Grid::from_vec(target_vec, n.into());
         Board {
             board,
-            target,
             n,
             pos_0: p_0,
         }
     }
 
-    fn next_positions(self) -> Vec<Directions> {
+    fn next_positions(&self) -> Vec<Directions> {
         let mut next_pos = vec![];
         if self.pos_0.y > 0 {
             next_pos.push(Directions::DOWN);
@@ -87,7 +100,7 @@ impl Board {
         return next_pos;
     }
 
-    fn heuristic_manhattan(self) -> u16 {
+    fn heuristic_manhattan(&self) -> u16 {
         let mut manhattan: u16 = 0;
         for j in 0..self.n {
             for i in 0..self.n {
@@ -123,7 +136,6 @@ mod tests {
 
         assert_eq!(board.n, 3);
         assert_eq!(board.pos_0, Pos { x: 0, y: 0 });
-        assert_eq!(board.target, grid![[1, 2, 3][4, 5, 6][7, 8, 0]]);
     }
 
     #[test]
