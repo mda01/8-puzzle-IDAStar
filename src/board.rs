@@ -104,7 +104,7 @@ mod tests {
     }
 
     #[test]
-    fn next_positions_test() {
+    fn next_positions_test1() {
         /*
         3
         0 1 3
@@ -119,5 +119,43 @@ mod tests {
         assert_eq!(next_p.len(), 2);
         assert!(next_p.contains(&Directions::UP));
         assert!(next_p.contains(&Directions::LEFT));
+    }
+
+    #[test]
+    fn next_positions_test2() {
+        /*
+        3
+        6 1 3
+        4 2 5
+        7 8 0
+        */
+        let n = 3;
+        let input_str = "6 1 3\n4 2 5\n7 8 0";
+        let board = Board::load_from_str(n, input_str);
+        let next_p = board.next_positions();
+
+        assert_eq!(next_p.len(), 2);
+        assert!(next_p.contains(&Directions::DOWN));
+        assert!(next_p.contains(&Directions::RIGHT));
+    }
+
+    #[test]
+    fn next_positions_test3() {
+        /*
+        3
+        2 1 3
+        4 0 5
+        7 8 6
+        */
+        let n = 3;
+        let input_str = "2 1 3\n4 0 5\n7 8 6";
+        let board = Board::load_from_str(n, input_str);
+        let next_p = board.next_positions();
+
+        assert_eq!(next_p.len(), 4);
+        assert!(next_p.contains(&Directions::UP));
+        assert!(next_p.contains(&Directions::LEFT));
+        assert!(next_p.contains(&Directions::DOWN));
+        assert!(next_p.contains(&Directions::RIGHT));
     }
 }
