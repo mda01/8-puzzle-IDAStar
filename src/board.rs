@@ -9,6 +9,7 @@ struct Pos {
 }
 pub struct Board {
     board: Grid<u16>,
+    target: Grid<u16>,
     pub n: u16,
     pos_0: Pos,
 }
@@ -58,8 +59,12 @@ impl Board {
             panic!("No 0 found!")
         }
         let board = Grid::from_vec(puzzle_vec, n.into());
+        let mut target_vec = Vec::from_iter(1..n * n);
+        target_vec.push(0);
+        let target = Grid::from_vec(target_vec, n.into());
         Board {
-            board: board,
+            board,
+            target,
             n,
             pos_0: p_0,
         }
@@ -81,6 +86,23 @@ impl Board {
         }
         return next_pos;
     }
+
+    fn heuristic_manhattan(self) -> u16 {
+        let mut manhattan: u16 = 0;
+        for j in 0..self.n {
+            for i in 0..self.n {
+                let val = self.board[(j.into(), i.into())];
+                if val != 0 {
+                    let x = (val - 1) % self.n;
+                    let y = (val - 1) / self.n;
+                    let dx: i16 = i16::abs(i16::try_from(x).unwrap() - i16::try_from(i).unwrap());
+                    let dy: i16 = i16::abs(i16::try_from(y).unwrap() - i16::try_from(j).unwrap());
+                    manhattan += u16::try_from(dx + dy).unwrap();
+                }
+            }
+        }
+        return manhattan;
+    }
 }
 
 #[cfg(test)]
@@ -101,6 +123,7 @@ mod tests {
 
         assert_eq!(board.n, 3);
         assert_eq!(board.pos_0, Pos { x: 0, y: 0 });
+        assert_eq!(board.target, grid![[1, 2, 3][4, 5, 6][7, 8, 0]]);
     }
 
     #[test]
@@ -157,5 +180,35 @@ mod tests {
         assert!(next_p.contains(&Directions::LEFT));
         assert!(next_p.contains(&Directions::DOWN));
         assert!(next_p.contains(&Directions::RIGHT));
+    }
+
+    #[test]
+    fn heuristic_manhattan_test1() {
+        /*
+        3
+        1 2 3
+        4 5 6
+        7 8 0
+        */
+        let n = 3;
+        let input_str = "1 2 3\n4 5 6\n7 8 0";
+        let board = Board::load_from_str(n, input_str);
+
+        assert_eq!(board.heuristic_manhattan(), 0);
+    }
+
+    #[test]
+    fn heuristic_manhattan_test2() {
+        /*
+        3
+        2 1 3
+        4 0 5
+        7 8 6
+        */
+        let n = 3;
+        let input_str = "2 1 3\n4 0 5\n7 8 6";
+        let board = Board::load_from_str(n, input_str);
+
+        assert_eq!(board.heuristic_manhattan(), 4);
     }
 }
