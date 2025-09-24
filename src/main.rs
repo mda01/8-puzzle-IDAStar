@@ -7,11 +7,11 @@ use std::fs;
 pub fn load_board(puzzle_name: &str) -> Board {
     let puzzle_str = fs::read_to_string(puzzle_name).expect("Could not read file");
     let mut puzzle_in = puzzle_str.splitn(2, '\n');
-    let n: u16 = puzzle_in
+    let n: usize = puzzle_in
         .next()
         .expect("Error reading the first line, maybe the file is empty?")
         .parse()
-        .expect("Impossible to parse this str to u16");
+        .expect("Impossible to parse this str to usize");
     // println!("N = {n}");
     let puzzle = puzzle_in
         .next()

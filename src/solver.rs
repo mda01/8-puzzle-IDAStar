@@ -1,7 +1,7 @@
 use grid::*;
 
 use crate::board::Board;
-use crate::board::Pos;
+use crate::board::Directions;
 pub struct Solver {
     board: Board,
     target: Board,
@@ -12,22 +12,24 @@ impl Solver {
         let n = board.get_n();
         let mut target_vec = Vec::from_iter(1..n * n);
         target_vec.push(0);
-        let target_grid = Grid::from_vec(target_vec, n.into());
+        let target_grid = Grid::from_vec(target_vec, n);
         return Solver {
-            board: board,
-            target: Board::new(target_grid, n, Pos::new(n - 1, n - 1)),
+            board,
+            target: Board::new(target_grid, n, (n - 1, n - 1)),
         };
     }
 
     fn is_over(&self) -> bool {
         return self.board == self.target;
     }
+
+    fn bfs(&self) -> Vec<Directions> {
+        return vec![];
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::solver;
-
     use super::*;
 
     #[test]
@@ -43,12 +45,9 @@ mod tests {
         let board = Board::load_from_str(n, input_str);
         let solver = Solver::new(board);
         assert_eq!(solver.board.get_n(), 3);
+        assert_eq!(*solver.board.get_grid(), grid![[0, 1, 3][4, 2, 5][7, 8, 6]]);
         assert_eq!(
-            *solver.board.get_board(),
-            grid![[0, 1, 3][4, 2, 5][7, 8, 6]]
-        );
-        assert_eq!(
-            *solver.target.get_board(),
+            *solver.target.get_grid(),
             grid![[1, 2, 3][4, 5, 6][7, 8, 0]]
         );
     }
