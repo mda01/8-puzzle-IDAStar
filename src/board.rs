@@ -1,5 +1,4 @@
 use core::fmt;
-
 use grid::*;
 
 #[derive(PartialEq, Debug)]
@@ -9,7 +8,7 @@ pub struct Pos {
 }
 
 impl Pos {
-    pub fn new(x: u16, y: u16) -> Pos {
+    pub fn new(x: u16, y: u16) -> Self {
         return Pos { x, y };
     }
 }
@@ -47,7 +46,7 @@ impl Board {
         return &self.board;
     }
 
-    pub fn new(board: Grid<u16>, n: u16, pos_0: Pos) -> Board {
+    pub fn new(board: Grid<u16>, n: u16, pos_0: Pos) -> Self {
         return Board { board, n, pos_0 };
     }
 
@@ -115,6 +114,12 @@ impl Board {
             }
         }
         return manhattan;
+    }
+}
+
+impl PartialEq for Board {
+    fn eq(&self, other: &Self) -> bool {
+        return &self.board == &other.board;
     }
 }
 
