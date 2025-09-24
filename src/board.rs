@@ -9,8 +9,11 @@ impl Board {
         let mut puzzle_vec = vec![];
         let mut rows = puzzle_str.splitn(n, "\n");
         for _ in 0..n {
-            let row = rows.next().expect("Out of rows");
+            let row: &str = rows.next().expect("Out of rows").trim();
             for val_str in row.split(' ') {
+                if val_str.is_empty() {
+                    continue;
+                }
                 let val: u16 = val_str
                     .parse()
                     .expect("Impossible to parse this str to u16");
