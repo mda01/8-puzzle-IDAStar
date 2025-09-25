@@ -1,18 +1,26 @@
 use core::fmt;
 use grid::*;
 
+#[derive(Clone)]
 pub struct Board {
     grid: Grid<usize>,
     n: usize,
     pos_0: (usize, usize),
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Directions {
     UP,
     DOWN,
     LEFT,
     RIGHT,
+}
+
+#[derive(PartialEq, Clone, Copy)]
+pub enum Heuristics {
+    NONE,
+    MANHATTAN,
+    LINCONFLICT,
 }
 
 impl fmt::Display for Directions {
@@ -28,19 +36,31 @@ impl fmt::Display for Directions {
 
 impl Board {
     pub fn get_n(&self) -> usize {
-        return self.n;
+        self.n
     }
 
     pub fn get_grid(&self) -> &Grid<usize> {
-        return &self.grid;
+        &self.grid
+    }
+
+    pub fn get_pos_0(&self) -> (usize, usize) {
+        self.pos_0
     }
 
     pub fn new(board: Grid<usize>, n: usize, pos_0: (usize, usize)) -> Self {
-        return Board {
+        Board {
             grid: board,
             n,
             pos_0,
-        };
+        }
+    }
+
+    pub fn heuristic(&self, heuristic_type: Heuristics) -> usize {
+        match heuristic_type {
+            Heuristics::NONE => 0,
+            Heuristics::MANHATTAN => self.heuristic_manhattan(),
+            Heuristics::LINCONFLICT => 0,
+        }
     }
 
     pub fn load_from_str(n: usize, puzzle_str: &str) -> Board {
@@ -59,7 +79,7 @@ impl Board {
                 if val == 0 {
                     let y: usize = i;
                     let x: usize = puzzle_vec.len() - (n * y);
-                    p_0 = (x, y);
+                    p_0 = (y, x);
                 }
                 puzzle_vec.push(val);
             }
@@ -75,66 +95,48 @@ impl Board {
         }
     }
 
-    fn next_directions(&self) -> Vec<Directions> {
+    pub fn next_directions(&self) -> Vec<Directions> {
         let mut next_pos = vec![];
-        if self.pos_0.1 > 0 {
-            next_pos.push(Directions::DOWN);
-        }
-        if self.pos_0.1 < self.n - 1 {
+        if self.pos_0.0 > 0 {
             next_pos.push(Directions::UP);
         }
-        if self.pos_0.0 > 0 {
-            next_pos.push(Directions::RIGHT);
-        }
         if self.pos_0.0 < self.n - 1 {
+            next_pos.push(Directions::DOWN);
+        }
+        if self.pos_0.1 > 0 {
             next_pos.push(Directions::LEFT);
+        }
+        if self.pos_0.1 < self.n - 1 {
+            next_pos.push(Directions::RIGHT);
         }
         return next_pos;
     }
 
-    pub fn next_boards(&self) -> Vec<Self> {
-        let mut next_boards = vec![];
-        for dir in self.next_directions() {
-            let mut new_grid = self.get_grid().clone();
-            let x = self.pos_0.0;
-            let y = self.pos_0.1;
-            let n = self.n;
-            match dir {
-                Directions::DOWN => {
-                    new_grid.swap((x, y), (x, y - 1));
-                    next_boards.push(Board {
-                        grid: new_grid,
-                        n,
-                        pos_0: (x, y - 1),
-                    });
-                }
-                Directions::UP => {
-                    new_grid.swap((x, y), (x, y + 1));
-                    next_boards.push(Board {
-                        grid: new_grid,
-                        n,
-                        pos_0: (x, y + 1),
-                    });
-                }
-                Directions::RIGHT => {
-                    new_grid.swap((x - 1, y), (x, y));
-                    next_boards.push(Board {
-                        grid: new_grid,
-                        n,
-                        pos_0: (x - 1, y),
-                    });
-                }
-                Directions::LEFT => {
-                    new_grid.swap((x, y), (x + 1, y));
-                    next_boards.push(Board {
-                        grid: new_grid,
-                        n,
-                        pos_0: (x + 1, y),
-                    });
-                }
+    pub fn make_move(&mut self, move_d: Directions) {
+        let x = self.pos_0.0;
+        let y = self.pos_0.1;
+        match move_d {
+            Directions::UP => {
+                self.grid.swap((x - 1, y), (x, y));
+
+                self.pos_0 = (x - 1, y)
+            }
+            Directions::DOWN => {
+                self.grid.swap((x + 1, y), (x, y));
+
+                self.pos_0 = (x + 1, y);
+            }
+            Directions::RIGHT => {
+                self.grid.swap((x, y + 1), (x, y));
+
+                self.pos_0 = (x, y + 1);
+            }
+            Directions::LEFT => {
+                self.grid.swap((x, y - 1), (x, y));
+
+                self.pos_0 = (x, y - 1);
             }
         }
-        return next_boards;
     }
 
     fn heuristic_manhattan(&self) -> usize {
@@ -195,8 +197,8 @@ mod tests {
         let next_d = board.next_directions();
 
         assert_eq!(next_d.len(), 2);
-        assert!(next_d.contains(&Directions::UP));
-        assert!(next_d.contains(&Directions::LEFT));
+        assert!(next_d.contains(&Directions::RIGHT));
+        assert!(next_d.contains(&Directions::DOWN));
     }
 
     #[test]
@@ -213,8 +215,8 @@ mod tests {
         let next_d = board.next_directions();
 
         assert_eq!(next_d.len(), 2);
-        assert!(next_d.contains(&Directions::DOWN));
-        assert!(next_d.contains(&Directions::RIGHT));
+        assert!(next_d.contains(&Directions::UP));
+        assert!(next_d.contains(&Directions::LEFT));
     }
 
     #[test]
@@ -238,7 +240,7 @@ mod tests {
     }
 
     #[test]
-    fn next_boards_test1() {
+    fn make_move_test1() {
         /*
         3
         0 1 3
@@ -247,16 +249,14 @@ mod tests {
         */
         let n = 3;
         let input_str = "0 1 3\n4 2 5\n7 8 6";
-        let board = Board::load_from_str(n, input_str);
-        let next_b = board.next_boards();
+        let mut board = Board::load_from_str(n, input_str);
+        board.make_move(Directions::RIGHT);
 
-        assert_eq!(next_b.len(), 2);
-        assert_eq!(*next_b[0].get_grid(), grid![[1, 0, 3] [4, 2, 5] [7, 8, 6]]);
-        assert_eq!(*next_b[1].get_grid(), grid![[4, 1, 3] [0, 2, 5] [7, 8, 6]]);
+        assert_eq!(*board.get_grid(), grid![[1, 0, 3] [4, 2, 5] [7, 8, 6]]);
     }
 
     #[test]
-    fn next_boards_test2() {
+    fn make_move_test2() {
         /*
         3
         6 1 3
@@ -265,12 +265,10 @@ mod tests {
         */
         let n = 3;
         let input_str = "6 1 3\n4 2 5\n7 8 0";
-        let board = Board::load_from_str(n, input_str);
-        let next_b = board.next_boards();
+        let mut board = Board::load_from_str(n, input_str);
+        board.make_move(Directions::UP);
 
-        assert_eq!(next_b.len(), 2);
-        assert_eq!(*next_b[0].get_grid(), grid![[6, 1, 3] [4, 2, 5] [7, 0, 8]]);
-        assert_eq!(*next_b[1].get_grid(), grid![[6, 1, 3] [4, 2, 0] [7, 8, 5]]);
+        assert_eq!(*board.get_grid(), grid![[6, 1, 3] [4, 2, 0] [7, 8, 5]]);
     }
 
     #[test]

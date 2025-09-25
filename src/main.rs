@@ -1,7 +1,7 @@
 pub mod board;
 pub mod solver;
 
-use crate::{board::Board, solver::Solver};
+use crate::{board::Board, solver::Algo, solver::Solver};
 use std::fs;
 
 pub fn load_board(puzzle_name: &str) -> Board {
@@ -22,9 +22,10 @@ pub fn load_board(puzzle_name: &str) -> Board {
 }
 
 fn main() {
-    let puzzle_name = "test_puzzles/puzzle00.txt";
+    let puzzle_name = "test_puzzles/puzzle25.txt";
     let board = load_board(puzzle_name);
-    let solver = Solver::new(board);
+    let mut solver = Solver::new(board.get_n());
+    solver.solve(&board, Algo::IDDFS, board::Heuristics::MANHATTAN);
 }
 
 #[cfg(test)]
