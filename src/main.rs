@@ -2,7 +2,7 @@ pub mod board;
 pub mod solver;
 
 use crate::{board::Board, solver::Algo, solver::Solver};
-use std::fs;
+use std::{fs, time};
 
 pub fn load_board(puzzle_name: &str) -> Board {
     let puzzle_str = fs::read_to_string(puzzle_name).expect("Could not read file");
@@ -22,10 +22,12 @@ pub fn load_board(puzzle_name: &str) -> Board {
 }
 
 fn main() {
-    let puzzle_name = "test_puzzles/puzzle25.txt";
+    let time_start = time::SystemTime::now();
+    let puzzle_name = "test_puzzles/puzzle4x4-78.txt";
     let board = load_board(puzzle_name);
     let mut solver = Solver::new(board.get_n());
-    solver.solve(&board, Algo::IDDFS, board::Heuristics::MANHATTAN);
+    solver.solve(board, Algo::IDASTAR, board::Heuristics::LINCONFLICT);
+    println!("elapsed time: {:?}", (time_start.elapsed().unwrap()));
 }
 
 #[cfg(test)]
