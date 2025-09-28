@@ -23,7 +23,7 @@ pub fn load_board(puzzle_name: &str) -> Board {
 
 fn main() {
     let time_start = time::SystemTime::now();
-    let puzzle_name = "test_puzzles/puzzle4x4-78.txt";
+    let puzzle_name = "test_puzzles/puzzle50.txt";
     let board = load_board(puzzle_name);
     let mut solver = Solver::new(board.get_n());
     solver.solve(board, Algo::IDASTAR, board::Heuristics::LINCONFLICT);

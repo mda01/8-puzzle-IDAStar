@@ -2,7 +2,8 @@ use grid::*;
 
 use crate::board::{Board, Directions, Heuristics};
 
-use std::collections::{HashMap, HashSet};
+use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::time;
 
 #[derive(PartialEq)]
@@ -17,11 +18,31 @@ pub struct Solver {
     visited_cache: HashMap<(Board, usize), bool>,
 }
 
-/*fn print_vec(v: &Vec<usize>) {
-    for val in v {
-        println!("{val}")
+// Structure pour représenter un nœud dans A*
+#[derive(Clone, Eq, PartialEq)]
+struct Node {
+    board: Board,
+    path: Vec<Directions>,
+    g_score: usize, // Coût depuis le début
+    f_score: usize, // g_score + heuristique
+}
+
+// Implémentation de l'ordre pour BinaryHeap (min-heap basé sur f_score)
+impl Ord for Node {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Inverse pour avoir un min-heap (BinaryHeap est un max-heap par défaut)
+        other
+            .f_score
+            .cmp(&self.f_score)
+            .then_with(|| other.g_score.cmp(&self.g_score))
     }
-}*/
+}
+
+impl PartialOrd for Node {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
 
 impl Solver {
     pub fn new(n: usize) -> Self {
@@ -59,7 +80,7 @@ impl Solver {
 
     pub fn solve(&mut self, init_board: Board, algo: Algo, heuristic: Heuristics) {
         match algo {
-            Algo::ASTAR => (), //self.a_star(init_board, vec![], 0, &heuristic),
+            Algo::ASTAR => self.a_star(init_board, &heuristic),
             Algo::IDASTAR => self.id_a_star(init_board, &heuristic),
         }
         println!("{}", self.solution_path_to_string());
@@ -67,6 +88,94 @@ impl Solver {
 
     fn is_target(&self, board: &Board) -> bool {
         return *board == self.target;
+    }
+
+    fn a_star(&mut self, init_board: Board, heuristic: &Heuristics) {
+        // priority queue for the nodes to explore
+        let mut open_heap = BinaryHeap::new();
+
+        // avoid visiting nodes in the path
+        let mut open_set = HashSet::new();
+
+        // best scores per state
+        let mut g_scores = HashMap::new();
+
+        // fully explored states
+        let mut closed_set = HashSet::new();
+
+        let h_score = init_board.heuristic(*heuristic);
+        let start_node = Node {
+            board: init_board.clone(),
+            path: vec![],
+            g_score: 0,
+            f_score: h_score,
+        };
+
+        open_heap.push(start_node);
+        open_set.insert(init_board.clone());
+        g_scores.insert(init_board.clone(), 0);
+
+        let mut nodes_explored = 0;
+
+        while let Some(current) = open_heap.pop() {
+            nodes_explored += 1;
+            open_set.remove(&current.board);
+
+            if self.is_target(&current.board) {
+                self.is_over = true;
+                self.solution_path = current.path;
+                println!("A* completed! Nodes explored: {}", nodes_explored);
+                return;
+            }
+
+            closed_set.insert(current.board.clone());
+
+            for dir in current.board.next_directions() {
+                let mut neighbor_board = current.board.clone();
+                neighbor_board.make_move(dir);
+
+                if closed_set.contains(&neighbor_board) {
+                    continue;
+                }
+
+                let tentative_g_score = current.g_score + 1;
+
+                // Check if this path is better
+                let is_better = match g_scores.get(&neighbor_board) {
+                    Some(&existing_g) => tentative_g_score < existing_g,
+                    None => true,
+                };
+
+                if is_better {
+                    // update best path
+                    g_scores.insert(neighbor_board.clone(), tentative_g_score);
+
+                    let h_score = neighbor_board.heuristic(*heuristic);
+                    let f_score = tentative_g_score + h_score;
+
+                    let mut new_path = current.path.clone();
+                    new_path.push(dir);
+
+                    let neighbor_node = Node {
+                        board: neighbor_board.clone(),
+                        path: new_path,
+                        g_score: tentative_g_score,
+                        f_score,
+                    };
+
+                    // only add the set if it's not in it
+                    if !open_set.contains(&neighbor_board) {
+                        open_heap.push(neighbor_node);
+                        open_set.insert(neighbor_board);
+                    }
+                }
+            }
+        }
+
+        println!(
+            "A* completed - No solution found! Nodes explored: {}",
+            nodes_explored
+        );
     }
 
     fn id_a_star(&mut self, init_board: Board, heuristic: &Heuristics) {

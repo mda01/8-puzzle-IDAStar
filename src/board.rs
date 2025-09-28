@@ -8,7 +8,7 @@ pub struct Board {
     pos_0: (usize, usize),
 }
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum Directions {
     UP,
     DOWN,
