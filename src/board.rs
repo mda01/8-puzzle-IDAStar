@@ -1,14 +1,14 @@
 use core::fmt;
 use grid::*;
 
-#[derive(Clone)]
+#[derive(Clone, Hash, Eq)]
 pub struct Board {
     grid: Grid<usize>,
     n: usize,
     pos_0: (usize, usize),
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum Directions {
     UP,
     DOWN,
@@ -16,7 +16,7 @@ pub enum Directions {
     RIGHT,
 }
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub enum Heuristics {
     NONE,
     MANHATTAN,
@@ -59,7 +59,7 @@ impl Board {
         match heuristic_type {
             Heuristics::NONE => 0,
             Heuristics::MANHATTAN => self.heuristic_manhattan(),
-            Heuristics::LINCONFLICT => 0,
+            Heuristics::LINCONFLICT => self.heuristic_linear_conflict(),
         }
     }
 
@@ -154,6 +154,94 @@ impl Board {
             }
         }
         return manhattan;
+    }
+    fn heuristic_linear_conflict(&self) -> usize {
+        // Commencer avec la distance Manhattan
+        let mut total = self.heuristic_manhattan();
+
+        // Ajouter les conflits linéaires pour les lignes
+        total += self.count_row_conflicts();
+
+        // Ajouter les conflits linéaires pour les colonnes
+        total += self.count_col_conflicts();
+
+        total
+    }
+
+    fn count_row_conflicts(&self) -> usize {
+        let mut conflicts = 0;
+
+        for row in 0..self.n {
+            // Collecter les tuiles qui appartiennent à cette ligne
+            let mut tiles_in_correct_row = Vec::new();
+
+            for col in 0..self.n {
+                let value = self.grid[(row, col)];
+                if value != 0 {
+                    // Calculer la ligne cible de cette tuile
+                    let target_row = (value - 1) / self.n;
+
+                    // Si la tuile est sur la bonne ligne
+                    if target_row == row {
+                        let target_col = (value - 1) % self.n;
+                        tiles_in_correct_row.push((col, target_col));
+                    }
+                }
+            }
+
+            // Compter les conflits dans cette ligne
+            conflicts += self.count_conflicts_in_line(&tiles_in_correct_row);
+        }
+
+        conflicts
+    }
+
+    fn count_col_conflicts(&self) -> usize {
+        let mut conflicts = 0;
+
+        for col in 0..self.n {
+            // Collecter les tuiles qui appartiennent à cette colonne
+            let mut tiles_in_correct_col = Vec::new();
+
+            for row in 0..self.n {
+                let value = self.grid[(row, col)];
+                if value != 0 {
+                    // Calculer la colonne cible de cette tuile
+                    let target_col = (value - 1) % self.n;
+
+                    // Si la tuile est sur la bonne colonne
+                    if target_col == col {
+                        let target_row = (value - 1) / self.n;
+                        tiles_in_correct_col.push((row, target_row));
+                    }
+                }
+            }
+
+            // Compter les conflits dans cette colonne
+            conflicts += self.count_conflicts_in_line(&tiles_in_correct_col);
+        }
+
+        conflicts
+    }
+
+    fn count_conflicts_in_line(&self, tiles: &[(usize, usize)]) -> usize {
+        let mut conflicts = 0;
+        let n = tiles.len();
+
+        for i in 0..n {
+            for j in (i + 1)..n {
+                let (pos1, target1) = tiles[i];
+                let (pos2, target2) = tiles[j];
+
+                // Conflit si les tuiles sont dans le mauvais ordre relatif
+                // par rapport à leurs positions cibles
+                if (pos1 < pos2 && target1 > target2) || (pos1 > pos2 && target1 < target2) {
+                    conflicts += 2; // Chaque conflit coûte 2 mouvements supplémentaires
+                }
+            }
+        }
+
+        conflicts
     }
 }
 
@@ -299,5 +387,37 @@ mod tests {
         let board = Board::load_from_str(n, input_str);
 
         assert_eq!(board.heuristic_manhattan(), 4);
+    }
+
+    #[test]
+    fn heuristic_linear_conflict_test() {
+        /*
+        Board actuel:
+        2 1 3
+        4 0 5
+        7 8 6
+
+        Analyse:
+        - Manhattan: 4 (calculé dans le test existant)
+        - Conflits ligne 0: tuiles 1 et 2 sont sur la bonne ligne mais inversées → +2
+        - Conflits ligne 1: tuile 5 est sur la bonne ligne, position correcte → 0
+        - Conflits ligne 2: tuile 6 est sur la bonne ligne mais mauvaise colonne → pas de conflit car pas même ligne cible
+        - Conflits colonnes: aucun conflit détecté
+
+        Total attendu: Manhattan(4) + Conflits(2) = 6
+        */
+        let n = 3;
+        let input_str = "2 1 3\n4 0 5\n7 8 6";
+        let board = Board::load_from_str(n, input_str);
+
+        let linear_conflict_result = board.heuristic(Heuristics::LINCONFLICT);
+
+        // Vérifier que Linear Conflict >= Manhattan
+        let manhattan_result = board.heuristic(Heuristics::MANHATTAN);
+        assert!(linear_conflict_result >= manhattan_result);
+
+        // Vérifier le résultat exact
+        // Manhattan = 4, Conflits linéaires = 2, Total = 6
+        assert_eq!(linear_conflict_result, 6);
     }
 }
